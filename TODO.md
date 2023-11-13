@@ -1,0 +1,2 @@
+- [ ] Install neovim plugins without having to open neovim and running `:PackerInstall`
+- [ ] If the user chose so, setup nvidia drivers depending on optimus-manger or not

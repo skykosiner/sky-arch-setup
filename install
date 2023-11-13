@@ -1,7 +1,5 @@
 #!/usr/bin/env bash
 
-dotfiles="https://github.com/skykosiner/.dotfiles"
-
 installpkg() {
 	pacman --noconfirm --needed -S "$1"
 }
@@ -13,7 +11,7 @@ installpkgyay() {
 installSuckless() {
     git clone "https://github.com/skykosiner/$1" "/home/$user/.local/src/$1"
     pushd "/home/$user/.local/src/$1"
-    sudo make install
+    make install
     popd
 }
 
@@ -44,7 +42,7 @@ sed -i "s/-j2/-j$(nproc)/;/^#MAKEFLAGS/s/^#//" /etc/makepkg.conf
 printf "Installing aur helper yay"
 git clone https://aur.archlinux.org/yay.git
 cd ./yay
-makepkg -si
+sudo -u "$user" makepkg -si
 cd ..
 rm -rf ./yay
 
@@ -69,6 +67,13 @@ go build -o /usr/bin/qbt cmd/qbt/main.go
 cd ..
 rm -rf ./qbittorrent-cli
 
+printf "Installing neovim"
+git clone https://github.com/neovim/neovim "/home/$user/.local/src/neovim"
+pushd "/home/$user/.local/src/neovim"
+make
+make install
+popd
+
 # Install dmenu, st, dwm, and dwmblocks
 printf "Installing suckless software"
 installSuckless "dmenu"
@@ -76,6 +81,39 @@ installSuckless "st"
 installSuckless "dwm"
 installSuckless "dwmblocks"
 
-# Get sound setup
+# DWM link for X11
+touch /usr/share/xsessions/dwm.desktop
+echo "[Desktop Entry]\nEncoding=UTF-8\nName=dwm\nComment=Dynamic windo manger\nExec=dwm\nIcon=dwm\nType=XSession" >> /usr/share/xsessions/dwm.desktop
+
 # Dotfiles
+printf "Setting up dotfiles"
+git clone https://github.com/skykosiner/.dotfiles "/home/$user/.dotfiles/"
+pushd "/home/$user/.dotfiles"
+export DOTFILES=/home/$user/.dotfiles
+export STOW_FOLDERS="bin,nvim,tmux,zsh,shell,dunst,fonts,vim,qutebrowser,zathula,lf,emacs,picom,newsboat"
+./install
+popd
+
+printf "Setting up packer for neovim"
+# Instaling packer it self
+sudo -u "$user" git clone --depth 1 https://github.com/wbthomason/packer.nvim\
+    ~/.local/share/nvim/site/pack/packer/start/packer.nvim
+
+# TODO: Install all plugins with packer
+
 # Ask about setting up Nvidia drivers, then ask to use optimus manger or not
+printf "Would you like to setup nvidia drivers?"
+read "[y/n] " ans
+
+# TODO: Setup nvidia drivers
+if [[ $ans == "y" ]]; then
+fi
+
+# Install and setup all the fun X11 stuff
+installpkg xorg
+installpkg xorg-xinit
+
+# Install and setup sddm
+installpkg sddm
+
+# Get sound setup

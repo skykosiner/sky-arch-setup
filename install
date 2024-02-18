@@ -1,48 +1,41 @@
 #!/usr/bin/env bash
 
+# Run sudo commands without the password
+printf "Sudo can be run without sudo password"
+sudo echo "%wheel ALL=(ALL:ALL) NOPASSWD: ALL" > /etc/sudoers
+
 installpkg() {
-	pacman --noconfirm --needed -S "$1"
+	sudo pacman --noconfirm --needed -S "$1"
 }
 
 installpkgyay() {
-	yay --noconfirm --needed -S "$1"
-}
-
-installSuckless() {
-    git clone "https://github.com/skykosiner/$1" "/home/$user/.local/src/$1"
-    pushd "/home/$user/.local/src/$1"
-    make install
-    popd
+	sudo yay --noconfirm --needed -S "$1"
 }
 
 read -p "Please enter your username used to setup the system: " user
 
 # Update system before anything
 printf "Updating system..."
-pcaman -Syyu
+sudo pcaman -Syyu
 
 # Install some base packages needed to do anything
 installpkg git
 installpkg base-devel
 
-# Run sudo commands without the password
-printf "Sudo can be run without sudo password"
-echo "%wheel ALL=(ALL:ALL) NOPASSWD: ALL" > /etc/sudoers
-
 # Make pacman colorful, concurrent downloads and Pacman eye-candy.
 printf "Making pacman look nice"
-grep -q "ILoveCandy" /etc/pacman.conf || sed -i "/#VerbosePkgLists/a ILoveCandy" /etc/pacman.conf
-sed -Ei "s/^#(ParallelDownloads).*/\1 = 5/;/^#Color$/s/#//" /etc/pacman.conf
+sudo grep -q "ILoveCandy" /etc/pacman.conf || sed -i "/#VerbosePkgLists/a ILoveCandy" /etc/pacman.conf
+sudo sed -Ei "s/^#(ParallelDownloads).*/\1 = 5/;/^#Color$/s/#//" /etc/pacman.conf
 
 # Use all cores when compling things with make
 printf "Using all cores to compile things"
-sed -i "s/-j2/-j$(nproc)/;/^#MAKEFLAGS/s/^#//" /etc/makepkg.conf
+sudo sed -i "s/-j2/-j$(nproc)/;/^#MAKEFLAGS/s/^#//" /etc/makepkg.conf
 
 # Installing yay (aur helper)
 printf "Installing aur helper yay"
 git clone https://aur.archlinux.org/yay.git
 cd ./yay
-sudo -u "$user" makepkg -si
+makepkg -si
 cd ..
 rm -rf ./yay
 
@@ -63,7 +56,7 @@ done <yay-install-list
 printf "Installing qbt cli"
 git clone https://github.com/ludviglundgren/qbittorrent-cli
 cd ./qbittorrent-cli
-go build -o /usr/bin/qbt cmd/qbt/main.go
+sudo go build -o /usr/bin/qbt cmd/qbt/main.go
 cd ..
 rm -rf ./qbittorrent-cli
 
@@ -71,19 +64,8 @@ printf "Installing neovim"
 git clone https://github.com/neovim/neovim "/home/$user/.local/src/neovim"
 pushd "/home/$user/.local/src/neovim"
 make
-make install
+sudo make install
 popd
-
-# Install dmenu, st, dwm, and dwmblocks
-printf "Installing suckless software"
-installSuckless "dmenu"
-installSuckless "st"
-installSuckless "dwm"
-installSuckless "dwmblocks"
-
-# DWM link for X11
-touch /usr/share/xsessions/dwm.desktop
-echo "[Desktop Entry]\nEncoding=UTF-8\nName=dwm\nComment=Dynamic windo manger\nExec=dwm\nIcon=dwm\nType=XSession" >> /usr/share/xsessions/dwm.desktop
 
 # Dotfiles
 printf "Setting up dotfiles"
@@ -94,19 +76,13 @@ export STOW_FOLDERS="bin,nvim,tmux,zsh,shell,dunst,fonts,vim,qutebrowser,zathula
 ./install
 popd
 
-printf "Setting up packer for neovim"
-# Instaling packer it self
-sudo -u "$user" git clone --depth 1 https://github.com/wbthomason/packer.nvim\
-    ~/.local/share/nvim/site/pack/packer/start/packer.nvim
-
-# TODO: Install all plugins with packer
-
 # Ask about setting up Nvidia drivers, then ask to use optimus manger or not
 printf "Would you like to setup nvidia drivers?"
-read "[y/n] " ans
+read -p "[y/n] " ans
 
 # TODO: Setup nvidia drivers
 if [[ $ans == "y" ]]; then
+    printf "Working on this atm"
 fi
 
 # Install and setup all the fun X11 stuff
@@ -115,5 +91,6 @@ installpkg xorg-xinit
 
 # Install and setup sddm
 installpkg sddm
+sudo systemctl enable --now sddm
 
 # Get sound setup
